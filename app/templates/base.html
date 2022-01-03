@@ -28,6 +28,18 @@
         </div>
       </div>
     </nav>
+
+    <!-- checking for form errors -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for categories, msg in messages %}
+          <div class="alert alert-{{ categories }} text-center" role="alert">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}    
+
     {% block content %}
       content
     {% endblock %}
