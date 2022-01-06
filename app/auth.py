@@ -3,7 +3,7 @@ from app.forms import SignUpForm, LoginForm, AdminForm, ProfileForm
 from wtforms.validators import ValidationError
 from app.db import createUser
 
-from .helpers import check_hash, fetch_user_hash, create_user_session, end_user_session, update_user, create_dep_for_user
+from .helpers import *
 
 auth = Blueprint('auth', __name__)
 
@@ -63,14 +63,12 @@ def logout():
 @auth.route('/profile', methods=['GET', 'POST'])
 def profile_page():
   form = ProfileForm()
-  # print('date type here>>>>>>>>>>>>>>>>>>>>>>', type(form.profile_dob.data.date()))
   if form.validate_on_submit():                     #validate the form then update it
-    print('user id is', session['customer_id'])
     flash(' Your data has been updated successfully ', category=update_user(session['customer_id'], form))
     #fill the form with new values
 
     return redirect(url_for('auth.profile_page'))
-
+  #populate the form with new data
   if session.get("customer_name"):
     print('update the session -----------------------', session.get("customer_name"))
     form.profile_username.data = session['customer_name']
@@ -88,26 +86,43 @@ def profile_page():
   return render_template("auth/profile.html", form=form)
 
 
-@auth.route('/dependents/name', methods=['GET', 'POST'])
-def dependent_page():
-  form = ProfileForm()
-  return render_template("auth/dependentForm.html", form=form)
+# delete
+# @auth.route('/dependents/', methods=['GET', 'POST'])
+# def dependent_page():
+#   form = ProfileForm()
+#   return render_template("auth/dependentForm.html", form=form)
 
-
-@auth.route('/dependents/form', methods=['GET', 'POST'])
-def dependent_form():
-  form = ProfileForm()
-  if form.validate_on_submit():                    
-    flash(' You have added a dependent ', category=create_dep_for_user(form, session['customer_id']))
-    return redirect(url_for('auth.dependents_page'))
-    #fill the form with new values
-  return render_template("auth/dependentForm.html", form=form)
-
-
-@auth.route('/dependents')
+@auth.route('/dependents/')
 def dependents_page():
   
-  return render_template("auth/dependents.html")
+  return render_template("auth/dependents.html", dependents=access_user_dependents(session['customer_id']) )
+
+
+@auth.route('/dependents/<dependent_id>', methods=['GET', 'POST'])
+def dependent_form(dependent_id):
+  form = ProfileForm()
+  # check on submitting and create new dependent
+  if form.validate_on_submit() and dependent_id == 'add_dependent':                    
+    flash(' You have added a dependent ', category=create_dep_for_user(form, session['customer_id']))
+    return redirect(url_for('auth.dependents_page'))
+
+  #showing dependent data and and check on submit to update
+  if dependent_id != 'add_dependent':
+     # check on submitting and update the data 
+    if form.validate_on_submit() and dependent_id != 'add_dependent': 
+      flash(" You have updated the information of your dependent", category=update_dependent(dependent_id, form))
+      return redirect(url_for('auth.dependent_form', dependent_id=dependent_id))
+    #fetch dependent
+    info = fetch_dependent_by_ssn(dependent_id)
+    #fil the form with dependent info
+    form.profile_username.data = info['dependent_name']
+    form.profile_email.data = info['dependent_email']
+    form.profile_dob.data = info['dependent_dob']
+    form.profile_ssn.data = info['dependent_ssn']
+    #fill the form with new values
+  return render_template("auth/dependentForm.html", form=form, form_state=dependent_id)
+
+
 
 
 @auth.route('/admin')

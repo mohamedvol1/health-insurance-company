@@ -5,6 +5,7 @@ from wtforms.validators import Email
 from app import bcrypt
 from app import mysql
 
+
 def generate_hash(password):
   return bcrypt.generate_password_hash(password)
 
@@ -100,13 +101,41 @@ def update_user(user_id, info):
   return 'success'
 
 
+#update dependent information by ssn
+def update_dependent(dependent_ssn, info):
+  print('>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<', info.profile_username.data)
+  # Creating a connection cursor
+  cursor = mysql.connection.cursor()
+  #turnning off safe update feature;
+  # cursor.execute('SET SQL_SAFE_UPDATES = 0;')
+  #updating data on database
+  sql = """UPDATE dependent SET 
+          dependent_name = %s,
+          dependent_email = %s,
+          dependent_dob = %s,
+          dependent_ssn = %s
+          WHERE dependent_ssn = %s
+       ;"""
+  val = (
+    info.profile_username.data, 
+    info.profile_email.data, 
+    info.profile_dob.data, 
+    info.profile_ssn.data, 
+    dependent_ssn
+  )
+  cursor.execute(sql, val)
+  #turnning on safe update again
+  # cursor.execute('SET SQL_SAFE_UPDATES = 1;')
+  #Saving the Actions performed on the DB
+  mysql.connection.commit()  
+  #Closing the cursor
+  cursor.close()
+
+  return 'success'
+
+
 def create_dep_for_user(info, current_user_id):
    cur = mysql.connection.cursor()
-
-  #  sql = "SELECT * FROM dependent;"
-  #  cur.execute(sql)
-  #  tuples = cur.description
-  #  print('sssssssssssssssssssssssssssssssssssssssssssssss',tuples)
 
    sql = """INSERT INTO dependent (
      dependent_name,
@@ -129,3 +158,39 @@ def create_dep_for_user(info, current_user_id):
    cur.close()
 
    return "success"
+
+
+def access_user_dependents(user_id):
+  cur = mysql.connection.cursor()
+
+  sql = "SELECT * FROM dependent WHERE customer_customer_id = %s;"
+  val = (user_id,)
+  cur.execute(sql, val)
+
+  dependents_list = cur.fetchall()
+  print('boooooooooooooooooom', dependents_list)
+  print(list[dependents_list])
+
+  # mysql.connection.commit()  
+  cur.close()
+
+  return list(dependents_list)
+
+
+def fetch_dependent_by_ssn(ssn):
+  cur = mysql.connection.cursor()
+  sql = "SELECT * FROM dependent WHERE dependent_ssn = %s;"
+  val = (ssn,)
+  cur.execute(sql, val)
+
+  #fetch the columns name and put in list
+  columns = [ cur.description[i][0] for i in range(len(cur.description)) ]
+  dependents_info = cur.fetchone()
+  dependents_dict = {}
+  #create a formated session with current user data (["column_db": "data_entered"])
+  for i in range(len(columns)):
+    dependents_dict[columns[i]] = dependents_info[i]
+  # dependents_info = cur.fetchone()        #fetch tuple of dependent info
+  cur.close()
+ 
+  return dependents_dict

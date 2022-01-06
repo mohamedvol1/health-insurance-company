@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% block title %} dependent page {% endblock %}
 {% block content %}
-  <h1>welcome to your dependent page<h1></h1>
   <form method="POST" class="col-6 m-auto border pt-5 pb-5 mt-5 mb-5 ps-5 pe-5 shadow-sm rounded-1 form-style" >
     {{ form.hidden_tag() }}
     <h1 class="fw-bold text-center">dependent Info</h1>
@@ -21,12 +20,18 @@
       {{ form.profile_ssn.label }}
       {{ form.profile_ssn(class="form-control", placeholder="your 9 digits ssn here") }}
     </div>
-    <div class="mb-3">
+    <!-- <div class="mb-3">
       {{ form.profile_phone.label }}
       {{ form.profile_phone(class="form-control", placeholder="0123456789") }}
-    </div>
-    <div class="d-flex justify-content-start">
-      {{ form.profile_submit(class="btn btn-primary", value='create') }}
-    </div>
+    </div> -->
+    {% if form_state == 'add_dependent' %}
+      <div class="d-flex justify-content-start">
+        {{ form.profile_submit(class="btn btn-primary", value='create') }}
+      </div>
+    {% else %}
+      <div class="d-flex justify-content-start">
+        {{ form.profile_submit(class="btn btn-primary", value='update') }}
+      </div>
+    {% endif %}
   </form>  
 {% endblock %}
