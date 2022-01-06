@@ -19,11 +19,17 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-          <div class="navbar-nav">
-            <a class="nav-link" href="{{ url_for('auth.login') }}">login</a>
-            <a class="nav-link" href="{{ url_for('auth.signUp') }}">sign-up</a>
-            <a class="nav-link" href="{{ url_for('auth.admin') }}">admin</a>
-            <a class="nav-link" href="#">logout</a>
+          <div class="navbar-nav"> -->
+            
+              {% if session.get('customer_name') is none %}
+                <a class="nav-link" href="{{ url_for('auth.login') }}">login</a>
+                <a class="nav-link" href="{{ url_for('auth.signUp') }}">sign-up</a>
+                <a class="nav-link" href="{{ url_for('auth.admin') }}">admin</a>
+              {% else %}
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">logout</a>
+                <a class="nav-link" href="{{ url_for('auth.profile_page') }}">hi {{session['customer_name']}}</a>
+              {% endif %}
+          
           </div>
         </div>
       </div>

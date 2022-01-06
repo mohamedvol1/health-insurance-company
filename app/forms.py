@@ -1,30 +1,15 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
+from wtforms import StringField, PasswordField, DateField, SubmitField
 from wtforms.validators import  Length, EqualTo, Email, DataRequired, ValidationError
 
-from app import mysql
+from .helpers import is_user_existed, check_hash
+
+# from app import mysql
 
 class SignUpForm(FlaskForm):
   #check if the email exists
   def validate_email(self, email_to_check):
-    cur = mysql.connection.cursor()
-    sql = "SELECT * FROM customer WHERE customer_email = %s;"
-    val = [email_to_check.data]
-    cur.execute(sql, val)
-
-    rc = cur.rowcount
-    print("===============>",cur.fetchall())
-    is_user_exsisted = len(cur.fetchall())
-    print("===============>",rc)
-    #if it exists raise an error
-
-    #Saving the Actions performed on the DB
-    mysql.connection.commit() 
-    #Closing the cursor
-    cur.close()
-    
-    if rc != 0:
-      print("xxxxxxxxxxxxxxxxxxxx")
+    if is_user_existed(email_to_check):
       raise ValidationError("Email address already exists, Try another one!")
 
   username = StringField(label='User Name:', validators=[Length(min=2, max=30), DataRequired()])
@@ -34,11 +19,34 @@ class SignUpForm(FlaskForm):
   submit = SubmitField(label='Regiter')
 
 class LoginForm(FlaskForm):
-  email = StringField(label='Email:')
-  password = PasswordField(label='Password:')
+  #check if the email exists
+  def validate_email(self, email_to_check):
+    if not is_user_existed(email_to_check):
+      raise ValidationError("Email address is not existed, please sign up!")
+          
+  email = StringField(label='Email:', validators=[DataRequired()])
+  password = PasswordField(label='Password:', validators=[DataRequired()])
   submit = SubmitField(label='Login')
 
+class ProfileForm(FlaskForm):
+  #check if the email exists
+  # def validate_email(self, email_to_check):
+  #   if is_user_existed(email_to_check):
+  #     raise ValidationError("Email address already exists, Try another one!")
+
+  profile_username = StringField(label='User Name:', validators=[Length(min=2, max=30), DataRequired()])
+  profile_email = StringField(label='Email:', validators=[Email(), DataRequired()])
+  profile_dob = DateField(label='Date of birth:', format='%Y-%m-%d')
+  profile_ssn = StringField(label='SSN:', validators=[Length(min=9, max=9, message='ssn must be 9 charachters')])
+  profile_phone = StringField(label='Phone:')
+  profile_submit = SubmitField(label='update')
+
+#  customer_dob = %s,
+#           customer_ssn = %s,
+#           customer_phone = %s
+
+
 class AdminForm(FlaskForm):
-  email = StringField(label='Email:')
-  password = PasswordField(label='Password:')
+  email = StringField(label='Email:', validators=[DataRequired()])
+  password = PasswordField(label='Password:', validators=[DataRequired()])
   submit = SubmitField(label='Login')

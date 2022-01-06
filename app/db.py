@@ -1,5 +1,4 @@
 # from flask_mysqldb import MySQL
-from flask.json.tag import PassDict
 from app import mysql
 from app.helpers import generate_hash
 
@@ -20,3 +19,4 @@ def createUser(username, email, password):
   cursor.close()
 
   return 'succes'
+
