@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, flash, redirect, sessions, url_for , session
-from app.forms import SignUpForm, LoginForm, AdminForm, ProfileForm
+from app.forms import SignUpForm, LoginForm, ProfileForm
 from wtforms.validators import ValidationError
 from app.db import createUser
 
@@ -12,13 +12,13 @@ auth = Blueprint('auth', __name__)
 def login():
   print("in the login function")
   print(' here>>>>>>>>>>>>>>>>>>>>>>', type(session))
-  form = LoginForm()
+  form = LoginForm('customer')
   if form.validate_on_submit():                             #validate and check for the right credentials                                                               
-    hash_to_check = fetch_user_hash(form.email.data)        #fetch the hash related to the email (correct password)
-    print('form object hereeeeeeeeeeeeeeeeeeeeeeeeeee', form)
+    hash_to_check = fetch_user_hash(form.email.data, 'customer')        #fetch the hash related to the email (correct password)
     if check_hash(hash_to_check, form.password.data):
       flash('You are Logged in', category='success')
-      create_user_session(form.email.data)
+      create_user_session(form.email.data, 'customer')
+      print('form object hereeeeeeeeeeeeeeeeeeeeeeeeeee', session)
       # return  redirect(url_for('auth.profile_page', user_session=user_session))
       return  redirect(url_for('auth.profile_page'))
     else:
@@ -62,9 +62,9 @@ def logout():
 
 @auth.route('/profile', methods=['GET', 'POST'])
 def profile_page():
-  form = ProfileForm()
+  form = ProfileForm('customer')
   if form.validate_on_submit():                     #validate the form then update it
-    flash(' Your data has been updated successfully ', category=update_user(session['customer_id'], form))
+    flash(' Your data has been updated successfully ', category=update_user(session['customer_id'], form, 'customer'))
     #fill the form with new values
 
     return redirect(url_for('auth.profile_page'))
@@ -100,7 +100,7 @@ def dependents_page():
 
 @auth.route('/dependents/<dependent_id>', methods=['GET', 'POST'])
 def dependent_form(dependent_id):
-  form = ProfileForm()
+  form = ProfileForm('dependent')
   # check on submitting and create new dependent
   if form.validate_on_submit() and dependent_id == 'add_dependent':                    
     flash(' You have added a dependent ', category=create_dep_for_user(form, session['customer_id']))
@@ -125,13 +125,53 @@ def dependent_form(dependent_id):
 
 
 
-@auth.route('/admin')
+@auth.route('/admin', methods=['GET', 'POST'])
 def admin():
-  form = AdminForm()
+  form = LoginForm('admin')
+  if form.validate_on_submit():                             #validate and check for the right credentials                                                               
+    hash_to_check = fetch_user_hash(form.email.data, 'admin')        #fetch the hash related to the email (correct password)
+    if check_hash(hash_to_check, form.password.data):
+      flash('You are Logged in', category='success')
+      create_user_session(form.email.data, 'admin')
+      return  redirect(url_for('auth.admin_profile'))
+    else:
+      flash('Wrong Credential!', category='danger')
+      return redirect('/admin')
 
+  # check if there is errors 
+  if form.errors:
+    for err_msg in form.errors.values():
+      flash(f'bad entry: {err_msg[0]}', category='danger')
+    return redirect('/admin')
+
+  # return '<h1>this is the admin page<h1>'
   return render_template("auth/admin.html", form=form)
 
-# @auth.route('/logout')
-# def logout():
-#   return '<h1>logout page</h1>'
 
+@auth.route('/admin-profile', methods=['GET', 'POST'])
+def admin_profile():
+  form = ProfileForm('admin')
+  if form.validate_on_submit():                     #validate the form then update it
+    flash(' Your data has been updated successfully ', category=update_user(session['admin_id'], form, 'admin'))
+    #fill the form with new values
+
+    return redirect(url_for('auth.profile_page'))
+  #populate the form with new data
+  if session.get("admin_name"):
+    print('update the session -----------------------', session.get("admin_name"))
+    form.profile_username.data = session['admin_name']
+    form.profile_email.data = session['admin_email']
+    form.profile_dob.data = session['admin_dob']
+    form.profile_ssn.data = session['admin_ssn']
+    form.profile_phone.data = session['admin_phone']
+    # return redirect(url_for('auth.profile_page'))
+
+  if form.errors:
+    for err_msg in form.errors.values():
+      flash(f'bad entry: {err_msg[0]}', category='danger')
+    return redirect(url_for('auth.profile_page'))
+
+  return render_template("auth/adminProfile.html", form=form)
+
+
+  

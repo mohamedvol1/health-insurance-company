@@ -12,16 +12,19 @@ def generate_hash(password):
 def check_hash(password_hash, password):
   return bcrypt.check_password_hash(password_hash, password)
 
-def is_user_existed(email):
+def is_user_existed(email, user):
   cur = mysql.connection.cursor()
-  sql = "SELECT * FROM customer WHERE customer_email = %s;"
+  sql = f"SELECT * FROM {user} WHERE {user}_email = %s;"
   val = [email.data]
   cur.execute(sql, val)
 
-  rc = cur.rowcount
-  print("===============>",cur.fetchall())
+  # rc = cur.rowcount
+  user_tuple = cur.fetchall()
+  print("===============11000>",user_tuple)
+  print(sql)
+  print(val)
   is_user_exsisted = len(cur.fetchall())
-  print("===============>",rc)
+  # print("===============>",rc)
   #if it exists raise an error
 
   #Saving the Actions performed on the DB
@@ -29,16 +32,16 @@ def is_user_existed(email):
   #Closing the cursor
   cur.close()
   
-  if rc != 0:
-    print("xxxxxxxxxxxxxxxxxxxx")
+  if user_tuple != ():
+    print("xxxxxxxxxxxxxxxxxxxx0000000000000", is_user_exsisted)
     return True
 
   return False
 
 #fetch the password hash for the wanted user
-def fetch_user_hash(user_email):
+def fetch_user_hash(user_email, user):
   cur = mysql.connection.cursor()
-  sql = "SELECT customer_hash FROM customer WHERE customer_email = %s;"
+  sql = f"SELECT {user}_hash FROM {user} WHERE {user}_email = %s;"
   val = (user_email,)
   cur.execute(sql, val)
 
@@ -48,24 +51,28 @@ def fetch_user_hash(user_email):
  
   return psw_hash
 
-
-def create_user_session(user_email):
+# create a session for a customer ir for admin you pass a string 'admin' or 'customer' as second param
+def create_user_session(user_email, user):
   cur = mysql.connection.cursor()
-  sql = "SELECT * FROM customer WHERE customer_email = %s;"
+  sql = f"SELECT * FROM {user} WHERE {user}_email = %s;"
   val = (user_email,)
   cur.execute(sql, val)
 
   #fetch the columns name and put in list
   columns = [ cur.description[i][0] for i in range(len(cur.description)) ]
-  user= cur.fetchone()
+  user_tuple= cur.fetchone()
   
   #create a formated session with current user data (["column_db": "data_entered"])
   for i in range(len(columns)):
-    if columns[i] == 'customer_hash':
+    # skip customer_hash or admin_hash
+    if '_hash' in columns[i]:
+    # if columns[i] == 'customer_hash':
       continue
-    session[columns[i]] = user[i]
+    session[columns[i]] = user_tuple[i]
 
   cur.close()
+
+  print('admin session mmmmmmmmmmmmmmmm', session)
  
   return "success"
 
@@ -74,18 +81,18 @@ def end_user_session():
   return session.clear()
 
 
-def update_user(user_id, info):
+def update_user(user_id, info, user):
   print('inside update_user function ttttttttttttttttttttttt', type(user_id))
   # Creating a connection cursor
   cursor = mysql.connection.cursor()
   #updating data on database
-  sql = """UPDATE customer SET 
-          customer_name = %s,
-          customer_email = %s,
-          customer_dob = %s,
-          customer_ssn = %s,
-          customer_phone = %s
-          WHERE customer_id = %s
+  sql = f"""UPDATE {user} SET 
+          {user}_name = %s,
+          {user}_email = %s,
+          {user}_dob = %s,
+          {user}_ssn = %s,
+          {user}_phone = %s
+          WHERE {user}_id = %s
        ;"""
   val = (info.profile_username.data, info.profile_email.data, info.profile_dob.data, info.profile_ssn.data, info.profile_phone.data, user_id)
   cursor.execute(sql, val)
@@ -96,7 +103,7 @@ def update_user(user_id, info):
   cursor.close()
 
   #update the session with the new data
-  create_user_session(info.profile_email.data)  
+  create_user_session(info.profile_email.data, user)  
 
   return 'success'
 

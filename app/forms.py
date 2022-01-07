@@ -19,9 +19,12 @@ class SignUpForm(FlaskForm):
   submit = SubmitField(label='Regiter')
 
 class LoginForm(FlaskForm):
+  def __init__(self, form_type):
+    super().__init__()
+    self.form_type = form_type
   #check if the email exists
   def validate_email(self, email_to_check):
-    if not is_user_existed(email_to_check):
+    if not is_user_existed(email_to_check, self.form_type):
       raise ValidationError("Email address is not existed, please sign up!")
           
   email = StringField(label='Email:', validators=[DataRequired()])
@@ -29,10 +32,13 @@ class LoginForm(FlaskForm):
   submit = SubmitField(label='Login')
 
 class ProfileForm(FlaskForm):
-  #check if the email exists
-  # def validate_email(self, email_to_check):
-  #   if is_user_existed(email_to_check):
-  #     raise ValidationError("Email address already exists, Try another one!")
+  def __init__(self, form_type):
+    super().__init__()
+    self.form_type = form_type
+  # check if the email exists
+  def validate_email(self, email_to_check):
+    if is_user_existed(email_to_check, self.form_type):
+      raise ValidationError("Email address already exists, Try another one!")
 
   profile_username = StringField(label='User Name:', validators=[Length(min=2, max=30), DataRequired()])
   profile_email = StringField(label='Email:', validators=[Email(), DataRequired()])
@@ -46,7 +52,7 @@ class ProfileForm(FlaskForm):
 #           customer_phone = %s
 
 
-class AdminForm(FlaskForm):
-  email = StringField(label='Email:', validators=[DataRequired()])
-  password = PasswordField(label='Password:', validators=[DataRequired()])
-  submit = SubmitField(label='Login')
+# class AdminForm(FlaskForm):
+#   email = StringField(label='Email:', validators=[DataRequired()])
+#   password = PasswordField(label='Password:', validators=[DataRequired()])
+#   submit = SubmitField(label='Login')
