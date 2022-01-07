@@ -1,3 +1,4 @@
+import re
 from flask import session
 import datetime 
 # from MySQLdb import cursors
@@ -201,3 +202,67 @@ def fetch_dependent_by_ssn(ssn):
   cur.close()
  
   return dependents_dict
+
+# plan helpers
+def create_plan(info):
+  cur = mysql.connection.cursor()
+
+  sql = "INSERT INTO plan (plan_type, plan_coverage, plan_price) VALUES (%s, %s, %s);"
+  val = (info.plan_type.data, info.plan_coverage.data, info.plan_price.data)
+  cur.execute(sql, val)
+
+  mysql.connection.commit()  
+  cur.close()
+
+  return 'success'
+  
+def update_plan(plan_id, info):
+  cur = mysql.connection.cursor()
+
+  sql = """UPDATE plan SET 
+          plan_type = %s,
+          plan_coverage = %s,
+          plan_price = %s
+          WHERE plan_id = %s
+       ;"""
+  val = (
+    info.plan_type.data,
+    info.plan_coverage.data,
+    info.plan_price.data,
+    plan_id
+  )
+  cur.execute(sql, val)
+  mysql.connection.commit() 
+
+  cur.close()
+
+  return 'success'
+
+def fetch_plan_id(plan_id):
+  cur = mysql.connection.cursor()
+
+  sql = "SELECT * FROM plan WHERE plan_id = %s;"
+  val = (plan_id,)
+  cur.execute(sql, val)
+
+  #fetch the columns name and put in list
+  columns = [ cur.description[i][0] for i in range(len(cur.description)) ]
+  plan_info = cur.fetchone()
+  plan_dict = {}
+  #create a formated session with current user data (["column_db": "data_entered"])
+  for i in range(len(columns)):
+    plan_dict[columns[i]] = plan_info[i]
+  # dependents_info = cur.fetchone()        #fetch tuple of dependent info
+  cur.close()
+
+  return plan_dict
+
+
+def access_plans():
+  cur = mysql.connection.cursor()
+  cur.execute("SELECT * FROM plan;")
+  plans_list = cur.fetchall()
+  # mysql.connection.commit()  
+  cur.close()
+
+  return list(plans_list)

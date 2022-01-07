@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, flash, redirect, sessions, url_for , session
-from app.forms import SignUpForm, LoginForm, ProfileForm
+from app.forms import SignUpForm, LoginForm, ProfileForm, PlanForm
 from wtforms.validators import ValidationError
 from app.db import createUser
 
@@ -86,12 +86,6 @@ def profile_page():
   return render_template("auth/profile.html", form=form)
 
 
-# delete
-# @auth.route('/dependents/', methods=['GET', 'POST'])
-# def dependent_page():
-#   form = ProfileForm()
-#   return render_template("auth/dependentForm.html", form=form)
-
 @auth.route('/dependents/')
 def dependents_page():
   
@@ -172,6 +166,39 @@ def admin_profile():
     return redirect(url_for('auth.profile_page'))
 
   return render_template("auth/adminProfile.html", form=form)
+
+
+@auth.route('/plans/')
+def plans_page():
+  
+  return render_template("auth/plans.html", plans=access_plans() )
+  
+
+
+@auth.route('/plans/<plan_id>', methods=['GET', 'POST'])
+def plan_form(plan_id):
+  form = PlanForm()
+  # check on submitting and create new dependent
+  if form.validate_on_submit() and plan_id == 'add_plan':                    
+    flash(' You have added a plan ', category=create_plan(form))
+    return redirect(url_for('auth.plans_page'))
+
+  #showing dependent data and and check on submit to update
+  if plan_id != 'add_plan':
+     # check on submitting and update the data 
+    if form.validate_on_submit() and plan_id != 'add_plan': 
+      flash(" You have updated the information of your dependent", category=update_plan(plan_id, form))
+      #returning same route with same id to reload the page
+      return redirect(url_for('auth.plan_form', plan_id=plan_id))
+    #fetch dependent
+    info = fetch_plan_id(plan_id)
+    #fil the form with dependent info
+    form.plan_type.data = info['plan_type']
+    form.plan_coverage.data = info['plan_coverage']
+    form.plan_price.data = info['plan_price']
+    
+    #fill the form with new values
+  return render_template("auth/planForm.html", form=form, form_state=plan_id)
 
 
   

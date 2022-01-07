@@ -47,12 +47,9 @@ class ProfileForm(FlaskForm):
   profile_phone = StringField(label='Phone:')
   profile_submit = SubmitField(label='update')
 
-#  customer_dob = %s,
-#           customer_ssn = %s,
-#           customer_phone = %s
-
-
-# class AdminForm(FlaskForm):
-#   email = StringField(label='Email:', validators=[DataRequired()])
-#   password = PasswordField(label='Password:', validators=[DataRequired()])
-#   submit = SubmitField(label='Login')
+class PlanForm(FlaskForm):
+  
+  plan_type = StringField(label='Plan Type:', validators=[Length(min=2, max=30), DataRequired()])
+  plan_coverage = StringField(label='Plan Coverage:', validators=[Length(min=5, max=200), DataRequired()])
+  plan_price = StringField(label='Price:', validators=[DataRequired()])
+  plan_submit = SubmitField(label='Add')
