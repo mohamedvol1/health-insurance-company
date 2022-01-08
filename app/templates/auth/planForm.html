@@ -16,6 +16,16 @@
       {{ form.plan_price.label }}
       {{ form.plan_price(class="form-control", placeholder="100$") }}
     </div>
+    <div class="dropdown mb-3">
+      <a class="btn btn-success dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+        associated hospitals
+      </a>
+      <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+        {% for hospital in hospitals %}
+         <li><a class="dropdown-item" href="#">{{ hospital }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
     {% if form_state == 'add_plan' %}
       <div class="d-flex justify-content-start">
         {{ form.plan_submit(class="btn btn-primary", value='Add') }}

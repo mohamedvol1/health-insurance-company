@@ -176,6 +176,7 @@ def plans_page():
 @auth.route('/plans/<plan_id>', methods=['GET', 'POST'])
 def plan_form(plan_id):
   form = PlanForm()
+  associated_hospitals = fetch_plan_hopitals(plan_id)
   # check on submitting and create new dependent
   if form.validate_on_submit() and plan_id == 'add_plan':                    
     flash(' You have added a plan ', category=create_plan(form))
@@ -196,7 +197,7 @@ def plan_form(plan_id):
     form.plan_price.data = info['plan_price']
     
     #fill the form with new values
-  return render_template("auth/planForm.html", form=form, form_state=plan_id)
+  return render_template("auth/planForm.html", form=form, form_state=plan_id, hospitals=associated_hospitals)
 
 
 @auth.route('/hospitals/')

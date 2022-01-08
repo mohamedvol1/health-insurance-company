@@ -348,7 +348,7 @@ def is_relation_existed(plan_id, hos_id):
 
   return False
 
-
+# for hopitalForm.html
 def fetch_hopspital_plans(hospital_id):
   cur = mysql.connection.cursor()
   sql = "SELECT plan_plan_id FROM plan_has_hospital WHERE hospital_hospital_id = %s;"
@@ -359,6 +359,35 @@ def fetch_hopspital_plans(hospital_id):
   cur.close()
 
   return hospital_plans_id
+
+#for planForm.html 
+def fetch_plan_hopitals(plan_id):
+  #fetch the associated hopitals ids from the relation table
+  cur = mysql.connection.cursor()
+  sql1 = "SELECT hospital_hospital_id FROM plan_has_hospital WHERE plan_plan_id = %s;"
+  val1 = (plan_id,)
+  cur.execute(sql1, val1)
+  ids_tuple = cur.fetchall()
+
+  #list is empty cuz there is no hospitals assciated with this plan
+  if ids_tuple == ():
+    return []
+  else: 
+    plan_hopitals_id_tuple = tuple([ tuple_id[0] for tuple_id in ids_tuple ])
+    print('yayayayyayayyayayayyayayay', plan_hopitals_id_tuple)
+  #fetch the name of the hospitals from hospital table
+  if len(plan_hopitals_id_tuple) > 1:
+    sql2 = f"SELECT hospital_name FROM hospital WHERE hospital_id IN {plan_hopitals_id_tuple};"
+  else:
+    sql2 = f"SELECT hospital_name FROM hospital WHERE hospital_id = {plan_hopitals_id_tuple[0]};"
+ 
+  
+  cur.execute(sql2)
+  hospitals_names = [ tuple_id[0] for tuple_id in cur.fetchall() ]
+
+  cur.close()
+
+  return hospitals_names
 
   
 
