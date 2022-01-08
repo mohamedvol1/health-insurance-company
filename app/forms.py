@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, DateField, SubmitField
+from wtforms import StringField, PasswordField, DateField, SubmitField, SelectMultipleField
 from wtforms.validators import  Length, EqualTo, Email, DataRequired, ValidationError
 
 from .helpers import is_user_existed, check_hash
@@ -48,8 +48,14 @@ class ProfileForm(FlaskForm):
   profile_submit = SubmitField(label='update')
 
 class PlanForm(FlaskForm):
-  
   plan_type = StringField(label='Plan Type:', validators=[Length(min=2, max=30), DataRequired()])
   plan_coverage = StringField(label='Plan Coverage:', validators=[Length(min=5, max=200), DataRequired()])
   plan_price = StringField(label='Price:', validators=[DataRequired()])
   plan_submit = SubmitField(label='Add')
+
+class hospitalForm(FlaskForm):
+  hospital_name = StringField(label='Hospital Name:', validators=[Length(min=2, max=30), DataRequired()])
+  hospital_address = StringField(label='Address:', validators=[Length(min=5, max=200), DataRequired()])
+  hospital_phone = StringField(label='Phone:', validators=[DataRequired()])
+  hospital_submit = SubmitField(label='Add')
+  

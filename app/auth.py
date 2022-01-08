@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, flash, redirect, sessions, url_for , session
-from app.forms import SignUpForm, LoginForm, ProfileForm, PlanForm
 from wtforms.validators import ValidationError
 from app.db import createUser
 
+from app.forms import *
 from .helpers import *
 
 auth = Blueprint('auth', __name__)
@@ -107,7 +107,7 @@ def dependent_form(dependent_id):
       flash(" You have updated the information of your dependent", category=update_dependent(dependent_id, form))
       return redirect(url_for('auth.dependent_form', dependent_id=dependent_id))
     #fetch dependent
-    info = fetch_dependent_by_ssn(dependent_id)
+    info = fetch_data_by(dependent_id, 'dependent', 'dependent_ssn')
     #fil the form with dependent info
     form.profile_username.data = info['dependent_name']
     form.profile_email.data = info['dependent_email']
@@ -115,8 +115,6 @@ def dependent_form(dependent_id):
     form.profile_ssn.data = info['dependent_ssn']
     #fill the form with new values
   return render_template("auth/dependentForm.html", form=form, form_state=dependent_id)
-
-
 
 
 @auth.route('/admin', methods=['GET', 'POST'])
@@ -149,7 +147,7 @@ def admin_profile():
     flash(' Your data has been updated successfully ', category=update_user(session['admin_id'], form, 'admin'))
     #fill the form with new values
 
-    return redirect(url_for('auth.profile_page'))
+    return redirect(url_for('auth.admin_profile'))
   #populate the form with new data
   if session.get("admin_name"):
     print('update the session -----------------------', session.get("admin_name"))
@@ -186,12 +184,12 @@ def plan_form(plan_id):
   #showing dependent data and and check on submit to update
   if plan_id != 'add_plan':
      # check on submitting and update the data 
-    if form.validate_on_submit() and plan_id != 'add_plan': 
+    if form.validate_on_submit(): 
       flash(" You have updated the information of your dependent", category=update_plan(plan_id, form))
       #returning same route with same id to reload the page
       return redirect(url_for('auth.plan_form', plan_id=plan_id))
     #fetch dependent
-    info = fetch_plan_id(plan_id)
+    info = fetch_data_by(plan_id, 'plan', 'plan_id')
     #fil the form with dependent info
     form.plan_type.data = info['plan_type']
     form.plan_coverage.data = info['plan_coverage']
@@ -201,4 +199,50 @@ def plan_form(plan_id):
   return render_template("auth/planForm.html", form=form, form_state=plan_id)
 
 
+@auth.route('/hospitals/')
+def hospitals_page():
   
+  return render_template("auth/hospitals.html", hospitals=access_hospitals() )
+  
+@auth.route('/hospitals/<hospital_id>', methods=['GET', 'POST'])
+def hospital_form(hospital_id):
+  plans = fetch_all_plans()
+  selected_plans = fetch_hopspital_plans(hospital_id)
+  print('wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww', selected_plans)
+  form = hospitalForm()
+  # print('yaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', fetch_all_plans())
+  if form.validate_on_submit() and hospital_id == 'add_hospital':                    
+      flash(' You have added a hospital ', category=add_hospital(form))
+      return redirect(url_for('auth.hospitals_page'))
+
+    #showing hopital data and and check on submit to update
+  if hospital_id != 'add_hospital':
+    # check on submitting and update the data 
+    if form.validate_on_submit(): 
+      flash(" You have updated the hospital information", category=update_hospital(hospital_id, form))
+      #returning same route with same id to reload the page
+      return redirect(url_for('auth.hospital_form', hospital_id=hospital_id))
+    #fetch dependent
+    print('pppppppppppppppppppppppppp', hospital_id)
+    info = fetch_data_by(hospital_id, 'hospital', 'hospital_id')
+    #fil the form with dependent info
+    form.hospital_name.data = info['hospital_name']
+    form.hospital_address.data = info['hospital_address']
+    form.hospital_phone.data = info['hospital_phone']
+  
+  return render_template("auth/hospitalForm.html", form=form, form_state=hospital_id, plans=plans, selected_plans=selected_plans)
+
+@auth.route('/relations/<plan_id>/<hospital_id>')
+def hospital_plane_relation(plan_id, hospital_id):
+  print('inside hos_palne unc Lllllllllllllllllllll')
+  #raise awarnning if the user tried to add a plane before ading a hospital
+  if hospital_id == 'add_hospital':
+    flash(' You need to add a hospital first ', category='danger')
+    return redirect(url_for('auth.hospital_form', hospital_id=hospital_id))
+  #add a plane to currnet hospital 
+  if create_hospital_plane_relation(plan_id, hospital_id) == 'success':
+    flash('You have added the hospital under a plan', category='success')
+  else:
+    flash('the hospital is already covered by this plan ', category='danger')
+  return redirect(url_for('auth.hospital_form', hospital_id=hospital_id))
+

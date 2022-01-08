@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %} hospital page {% endblock %}
+{% block content %}
+  <form method="POST" class="col-6 m-auto border pt-5 pb-5 mt-5 mb-5 ps-5 pe-5 shadow-sm rounded-1 form-style" >
+    {{ form.hidden_tag() }}
+    <h1 class="fw-bold text-center">Hospital Details</h1>
+    <div class="mb-3">
+      {{ form.hospital_name.label }}
+      {{ form.hospital_name(class="form-control", placeholder="hospital name") }}
+    </div>
+    <div class="mb-3">
+      {{ form.hospital_address.label }}
+      {{ form.hospital_address(class="form-control", placeholder="ST 123") }}
+    </div>
+    <div class="mb-3">
+      {{ form.hospital_phone.label }}
+      {{ form.hospital_phone(class="form-control", placeholder="0123456789") }}
+    </div>
+    <span>associated plans:</span>
+    <ul class="list-group mb-3">
+      {% for id in selected_plans %}
+        <li class="list-group-item active" aria-current="true">{{ plans[id] }}</li>
+      {% endfor %}
+    </ul>
+    <span>choose a plan:</span>
+    <div class="list-group">
+      {% for key, value in plans.items() %}
+        <a href="{{ url_for('auth.hospital_plane_relation', plan_id=key, hospital_id=form_state) }}" class="list-group-item list-group-item-action">{{ value }}</a>
+      {% endfor %}
+    </div>
+    {% if form_state == 'add_hospital' %}
+      <div class="d-flex justify-content-start mt-3">
+        {{ form.hospital_submit(class="btn btn-primary", value='Add') }}
+      </div>
+    {% else %}
+      <div class="d-flex justify-content-start mt-3">
+        {{ form.hospital_submit(class="btn btn-primary", value='update') }}
+      </div>
+    {% endif %}
+  </form>  
+{% endblock %}

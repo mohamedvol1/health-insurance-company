@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %} plans {% endblock %}
+{% block title %} hospitals {% endblock %}
 
 {% block content %}
 <!-- <div class="d-flex flex-column bd-highlight mb-2"> -->
@@ -8,26 +8,27 @@
         <div class="container px-5 my-5 mb-1">
             <div class="row gx-5 justify-content-center">
                 <!-- Pricing card free-->
-                {% for plan in plans %}
+                {% for hospital in hospitals %}
                     <div class="col-lg-6 col-xl-4 mt-5">
                         <div class="card mb-5 mb-xl-0">
                             <div class="card-body p-5">
                                 <div class="mb-3">
-                                    <!-- plan name -->
-                                    <span class="display-4 fw-bold">{{ plan[1] }}</span>
-                                </div>
-                                <div class="mb-3">
-                                  <span class="display-4 fw-bold">${{ plan[3] }}</span>
-                                  <span class="text-muted">/ mo.</span>
+                                    <!-- hospital name -->
+                                    <span class="display-6 fw-bold">{{ hospital[1] }}</span>
                                 </div>
                                 <ul class="list-unstyled mb-4">
+                                    <!-- hospital address -->
                                     <li class="mb-2">
-                                        <!-- plan price -->
-                                        <i class="bi bi-check text-primary"></i>
-                                        Coverage: {{ plan[2] }}
+                                      <i class="bi bi-check text-primary"></i>
+                                      Address: {{ hospital[2] }}
+                                    </li>
+                                    <!-- hospital phone -->
+                                    <li class="mb-2">
+                                      <i class="bi bi-check text-primary"></i>
+                                      Phone: {{ hospital[3] }}
                                     </li>
                                 </ul>
-                                <div class="d-grid"><a class="btn btn-outline-primary" href="{{ url_for('auth.plan_form', plan_id=plan[0]) }}">SHOW INFO</a></div>
+                                <div class="d-grid"><a class="btn btn-outline-primary" href="{{ url_for('auth.hospital_form', hospital_id=hospital[0]) }}">SHOW INFO</a></div>
                             </div>
                         </div>
                     </div>        
@@ -37,7 +38,7 @@
         </div>
 
         <div class="d-flex justify-content-center mb-5 mt-5">
-        <a href="{{ url_for('auth.plan_form', plan_id='add_plan') }}" class="btn btn-warning " aria-current="page"> + Add Plan</a>
+        <a href="{{ url_for('auth.hospital_form', hospital_id='add_hospital') }}" class="btn btn-warning " aria-current="page"> + Add Hospital</a>
         </div>
     </section>
   <!-- </div> -->
