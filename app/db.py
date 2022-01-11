@@ -18,5 +18,5 @@ def createUser(username, email, password):
   #Closing the cursor
   cursor.close()
 
-  return 'succes'
+  return 'success'
 

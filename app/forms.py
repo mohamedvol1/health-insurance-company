@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, DateField, SubmitField, SelectMultipleField
+from wtforms import StringField, PasswordField, DateField, SubmitField, SelectField
 from wtforms.validators import  Length, EqualTo, Email, DataRequired, ValidationError
 
 from .helpers import is_user_existed, check_hash
@@ -59,3 +59,16 @@ class hospitalForm(FlaskForm):
   hospital_phone = StringField(label='Phone:', validators=[DataRequired()])
   hospital_submit = SubmitField(label='Add')
   
+
+class PolicyForm(FlaskForm):
+  # policy_beneficiary_name = StringField(label='Name:', validators=[Length(min=2, max=30), DataRequired()])
+  policy_beneficiary_ssn = SelectField(u'SSN for: ', choices=[], validators=[DataRequired()])
+  policy_plan = SelectField(u'choose a plan: ', choices=[], validators=[DataRequired()])
+  policy_submit = SubmitField(label='Add')
+
+class ClaimForm(FlaskForm):
+  claim_beneficiary_name = StringField(label='Beneficiary Name: ', validators=[DataRequired()])
+  claim_hospital_name = SelectField(u'Hospital: ', choices=[], validators=[DataRequired()])
+  claim_details = StringField(label='Claim Details:', validators=[Length(min=5, max=200), DataRequired()])
+  claim_expenses = StringField(label='Claim Expenses:', validators=[DataRequired()])
+  claim_submit = SubmitField(label='issue a claim')

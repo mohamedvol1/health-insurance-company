@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %} claims {% endblock %}
+
+{% block content %}
+<!-- <div class="d-flex flex-column bd-highlight mb-2"> -->
+    <!-- planes -->
+    <section class="bg-light py-5 border-bottom">
+        <div class="container px-5 my-5 mb-1">
+          <h1 class="fw-bold text-center">choose a policy to create a claim for</h1>
+          <div class="list-group">
+            {% for policy in policies%}
+             <a href="{{ url_for('auth.claim_form', policy_id=policy[0], policy_beneficiry=policy[2]) }}" class="list-group-item list-group-item-action">
+              <strong>Policy ID:</strong> {{ policy[0] }}<br>
+              <strong>Policy Beneficiary Name:</strong> {{ policy[2] }}<br>
+              <strong>Policy Beneficiary SSN:</strong> {{ policy[1] }}<br>
+             </a>
+            {% endfor %}
+            
+          </div>
+          
+        </div>
+    </section> 
+{% endblock %}
+
+
+
+

@@ -265,7 +265,11 @@ def fetch_data_by(key, table_name, column_name):
   #fetch the columns name and put in list
   columns = [ cur.description[i][0] for i in range(len(cur.description)) ]
   row_info = cur.fetchone()
+  rc = cur.rowcount
   row_dict = {}
+  #no matches
+  if rc == 0:
+    return {}
   #create a formated session with current user data (["column_db": "data_entered"])
   for i in range(len(columns)):
     row_dict[columns[i]] = row_info[i]
@@ -316,6 +320,15 @@ def fetch_all_plans():
     formated_dict[plan[0]] = plan[1]
 
   return formated_dict
+
+
+#formate fetch_all_plans for policy form 
+def formatted_fetch_all_plans():
+  plane_tuple_list = []
+  plans_dict = fetch_all_plans()
+  for plan_id, plan_type in plans_dict.items():
+    plane_tuple_list.append((plan_id, plan_type))
+  return plane_tuple_list
 
 
 def create_hospital_plane_relation(plan_id, hos_id):
@@ -372,6 +385,7 @@ def fetch_plan_hopitals(plan_id):
   #list is empty cuz there is no hospitals assciated with this plan
   if ids_tuple == ():
     return []
+  #formate it from ((1,), (2,), ....) to (1, 2, 3, ...)
   else: 
     plan_hopitals_id_tuple = tuple([ tuple_id[0] for tuple_id in ids_tuple ])
     print('yayayayyayayyayayayyayayay', plan_hopitals_id_tuple)
@@ -389,8 +403,428 @@ def fetch_plan_hopitals(plan_id):
 
   return hospitals_names
 
+
+def fetch_claim_hopitals(policy_id):
+  cur = mysql.connection.cursor()
+  sql = f"SELECT plan_plan_id FROM policy_plane WHERE policy_policy_id = {policy_id};"
+  cur.execute(sql)
+  paln_id = cur.fetchone()[0]
+  
+  return fetch_plan_hopitals(paln_id)
+  
+
+
+#(ssn, name)
+#fetch entries that is not assciated with a policy
+def fetch_availble_ssn(current_user_id, current_user_ssn, current_user_name):
+  cur = mysql.connection.cursor()
+  sql1 = f'SELECT dependent_ssn, dependent_name FROM dependent WHERE customer_customer_id = {current_user_id};'
+  cur.execute(sql1)
+  dependent_list = list(cur.fetchall())
+  user_ssn = [(current_user_ssn, current_user_name)]
+  cur.close()
+
+  ssn_tuples_list = dependent_list + user_ssn
+  new_ssn_tuples_list = []
+  for ssn, name in ssn_tuples_list:
+    if is_ssn_associated_with_policy(ssn):
+      continue
+    new_ssn_tuples_list.append((ssn, name))
+
+  return new_ssn_tuples_list
+
+#fetch entries assciated with a policy
+def fetch_availble_ssn_for_claim(current_user_id, current_user_ssn, current_user_name):
+  cur = mysql.connection.cursor()
+  sql1 = f'SELECT dependent_ssn, dependent_name FROM dependent WHERE customer_customer_id = {current_user_id};'
+  cur.execute(sql1)
+  dependent_list = list(cur.fetchall())
+  user_ssn = [(current_user_ssn, current_user_name)]
+  cur.close()
+
+  ssn_tuples_list = dependent_list + user_ssn
+  new_ssn_tuples_list = []
+  for ssn, name in ssn_tuples_list:
+    if not is_ssn_associated_with_policy(ssn):
+      continue
+    new_ssn_tuples_list.append((ssn, name))
+
+  return new_ssn_tuples_list
+   
+
+
+def create_claim(info, policy_id):
+  cur = mysql.connection.cursor()
+
+
+  # values = ','.join(map(str, value_list))
+
+  sql = """INSERT INTO claim (
+    claim_expenses, 
+    claim_details,   
+    claim_beneficiary_name, 
+    claim_hospital
+  ) VALUES (%s,%s,%s,%s);"""
+
+  # val = 
+  #   info.claim_expenses.data,
+  value_list = (
+    info.claim_expenses.data,
+    info.claim_details.data, 
+    info.claim_beneficiary_name.data,
+    info.claim_hospital_name.data
+  )
+  
+  cur.execute(sql, value_list)
+  #fettxh claim 
+  claim_id = cur.lastrowid 
+  
+  #create a relation with current policy
+  sql1 = "INSERT INTO policy_claim (policy_policy_id, claim_claim_id) VALUES (%s, %s);"
+  val1 = (policy_id, claim_id) 
+  cur.execute(sql1, val1)
+  
+  mysql.connection.commit()   
+  cur.close()
+
+
+  return 'success'
+  
+
+
+
+def is_ssn_associated_with_policy(ssn):
+  cur = mysql.connection.cursor()
+  sql = 'SELECT * FROM policy WHERE policy_beneficiary_ssn = (%s);'
+  cur.execute(sql, (ssn,))
+  rc = cur.rowcount
+  # entry is existed
+  if rc > 0:
+    return True
+  return False
+
+
+
+def access_customer_policies_id(customer_id):
+  cur = mysql.connection.cursor()
+  sql1 = f'SELECT policy_policy_id FROM customer_policy WHERE customer_customer_id = {customer_id};'
+  cur.execute(sql1)
+  #list of tuples 
+  # policies_id_list = list(cur.fetchall())
+  #tuple of ids (1, 2, 3, ....)
+  policies_ids_tuple = tuple([ tupl[0] for tupl in cur.fetchall() ])
+  print("fffffffffffffffffffffffffoooooooooooooooooooooooooo", policies_ids_tuple)
+  cur.close()
+
+
+  return access_customer_policies_info(policies_ids_tuple)
+
+def access_customer_policies_info(ids_tupl):
+  cur = mysql.connection.cursor()
+  if len(ids_tupl) > 1:
+    sql = f'SELECT * FROM policy WHERE policy_id IN {ids_tupl};'
+  elif len(ids_tupl) == 1:
+    sql = f'SELECT * FROM policy WHERE policy_id = {ids_tupl[0]};'
+  else:
+    return []
+
+  cur.execute(sql)
+
+  policies_list = list(cur.fetchall())
+  print(policies_list)
+
+  cur.close()
+  # return a tuple of each policy
+  return policies_list
+
+#name
+def fetch_name_for_ssn(ssn):
+  cur = mysql.connection.cursor()
+  #search in dependents
+  dict1 = fetch_data_by(ssn, 'dependent', 'dependent_ssn')
+  if dict1:
+    return dict1['dependent_name']
+  
+  dict2 = fetch_data_by(ssn, 'customer', 'customer_ssn')
+  return dict2['customer_name']
   
 
 
 
 
+
+
+
+def access_policy_claim_id(ids_tupl):
+  cur = mysql.connection.cursor()
+  if len(ids_tupl) > 1:
+    sql = f'SELECT claim_claim_id FROM policy_claim WHERE policy_policy_id IN {ids_tupl};'
+  elif len(ids_tupl) == 1:
+    sql = f'SELECT claim_claim_id FROM policy_claim WHERE policy_policy_id = {ids_tupl[0]};'
+  else:
+    return []
+
+  cur.execute(sql)
+  claim_ids_tuple = tuple(list(tupl[0] for tupl in cur.fetchall()))
+  cur.close()
+  return claim_ids_tuple
+
+def access_policy_claim_info(ids_tupl):
+  cur = mysql.connection.cursor()
+  if len(ids_tupl) > 1:
+    sql = f'SELECT * FROM claim WHERE claim_id IN {ids_tupl};'
+  elif len(ids_tupl) == 1:
+    sql = f'SELECT * FROM claim WHERE claim_id = {ids_tupl[0]};'
+  else:
+    return []
+
+  cur.execute(sql)
+
+  claims_list = list(cur.fetchall())
+  print(claims_list)
+
+  cur.close()
+  # return a tuple of each policy
+  return claims_list
+
+
+
+
+
+
+
+def create_policy(info, customer_id, policy_id):
+  cur = mysql.connection.cursor()
+  print('gggggggggggggggggggggggggiIIIIIIIIIIIIIIIIIIIIII', info.policy_beneficiary_ssn.data)
+  sql = "INSERT INTO policy (policy_beneficiary_ssn) VALUES (%s);"
+  val = (info.policy_beneficiary_ssn.data,)
+  cur.execute(sql, val)
+  
+  #fetch policy id
+  policy_id = cur.lastrowid
+  print('gggggggggggggggggggggggggiIIIIIIIIIIIIIIIIIIIIII', policy_id)
+  #create relation with customer
+  sql1 = "INSERT INTO customer_policy (customer_customer_id, policy_policy_id) VALUES (%s, %s);"
+  cur.execute(sql1, (customer_id, policy_id))
+  
+  #create relation with plan
+  sql2 = "INSERT INTO policy_plane (policy_policy_id, plan_plan_id) VALUES (%s, %s);"
+  cur.execute(sql2, (policy_id, info.policy_plan.data))
+
+  mysql.connection.commit()
+  cur.close()
+  
+  return 'success'
+
+def fetch_associated_plan(policy_id):
+  #fetch plan id
+  cur = mysql.connection.cursor()
+  sql = f'SELECT plan_plan_id FROM policy_plane WHERE policy_policy_id = {policy_id}'
+  cur.execute(sql)
+
+  plan_id = cur.fetchone()[0]
+
+  #ftech plan info (name)
+  
+  return fetch_data_by(plan_id, 'plan', 'plan_id')
+
+
+   
+
+
+
+
+  # if fetch_user_by_ssn(info.policy_beneficiary_ssn.data):
+  #   # add a relation in customer_policy relation table
+  #   create_customer_policy_relation(policy_id, customer_id)
+  #   return 'success'
+
+  # if fetch_dependent_by_ssn(info.policy_beneficiary_ssn.data):
+  #   # add a relation in dependent_policy relation taple
+  #   create_dependent_policy_relation(policy_id, customer_id)
+  #   return 'success'
+
+  # return 'danger'
+
+def fetch_user_by_ssn(customer_ssn):
+  cur = mysql.connection.cursor()
+  sql = "SELECT * FROM customer WHERE customer_ssn = %"
+  cur.execute(sql, customer_ssn)
+  rc = cur.rowcount
+  # no customer for this ssn
+  if rc == 0:
+    return False
+
+  return True
+
+def fetch_dependent_by_ssn(dependent_ssn):
+  cur = mysql.connection.cursor()
+  sql = "SELECT * FROM dependent WHERE dependent_ssn = %"
+  cur.execute(sql, dependent_ssn)
+  rc = cur.rowcount
+  cur.close()
+  # no customer for this ssn
+  if rc == 0:  
+    return False
+
+  return True
+
+def create_customer_policy_relation(policy_id, customer_id):
+  #check if the relation already existed
+  if is_customer_policy_relation_existed(policy_id, customer_id):
+    return 'danger'
+
+  cur = mysql.connection.cursor()
+  sql = "INSERT INTO customer_policy (customer_customer_id, policy_policy_id) VALUES (%s, %s)"
+  val = (customer_id, policy_id)
+  cur.execute(sql, val)
+  mysql.connection.commit()
+
+  cur.close()
+
+  return 'success' 
+
+def is_customer_policy_relation_existed(policy_id, customer_id):
+  cur = mysql.connection.cursor()
+  sql = "SELECT * FROM customer_policy WHERE customer_customer_id = %s AND policy_policy_id = %s;"
+  val = (customer_id, policy_id)
+  cur.execute(sql, val)
+  rc = cur.rowcount 
+  cur.close()
+
+  if rc >= 1:
+    return True
+
+  return False
+
+def create_dependent_policy_relation(policy_id, customer_id):
+  #check if the relation already existed
+  if is_dependent_policy_relation_existed(policy_id, customer_id):
+    return 'danger'
+
+  cur = mysql.connection.cursor()
+  sql = "INSERT INTO dependents_policy (policy_policy_id, dependent_customer_customer_id1) VALUES (%s, %s)"
+  val = (customer_id, policy_id)
+  cur.execute(sql, val)
+  mysql.connection.commit()
+
+  cur.close()
+
+  return 'success' 
+
+def is_dependent_policy_relation_existed(policy_id, customer_id):
+  cur = mysql.connection.cursor()
+  sql = "SELECT * FROM dependents_policy WHERE policy_policy_id = %s AND dependent_customer_customer_id1 = %s;"
+  val = (policy_id, customer_id)
+  cur.execute(sql, val)
+  rc = cur.rowcount 
+  cur.close()
+
+  if rc >= 1:
+    return True
+
+  return False
+
+
+def fetch_all_customers():
+  cur = mysql.connection.cursor()
+  sql = "SELECT * FROM customer;"
+  cur.execute(sql)
+  customers_tuples = cur.fetchall()
+  
+  cur.close()
+  print('heeeeeeeeeeeeeeeeeeeeeeeeeeeeyy',customers_tuples)
+  return list(customers_tuples)
+
+
+def fetch_customers_claims(customer_id, filtr):
+  #fetch policies ids
+  cur = mysql.connection.cursor()
+  sql = f'SELECT policy_policy_id FROM customer_policy WHERE customer_customer_id = {customer_id};'
+  cur.execute(sql)
+  policies_id_tuple = tuple([ tupl[0] for tupl in cur.fetchall()])
+ 
+  cur.close()
+  #fetch claims ids
+  cur = mysql.connection.cursor()
+  if len(policies_id_tuple) > 1:
+    sql1 = f'SELECT claim_claim_id FROM policy_claim WHERE policy_policy_id IN {policies_id_tuple};'
+  elif len(policies_id_tuple) == 1:
+    sql1 = f'SELECT claim_claim_id FROM policy_claim WHERE policy_policy_id = {policies_id_tuple[0]};'
+  else:
+    return []
+
+  cur.execute(sql1)
+  claims_id_tuple = tuple([ tupl[0] for tupl in cur.fetchall()])
+
+  cur.close()
+
+
+  #fetch resolved claims
+  if filtr == 'True':
+    cur = mysql.connection.cursor()
+    if len(claims_id_tuple) > 1:
+      sql2 = f'SELECT * FROM claim WHERE claim_id IN {claims_id_tuple} AND claim_status = 1;'
+    elif len(claims_id_tuple) == 1:
+      sql2 = f'SELECT * FROM claim WHERE claim_id = {claims_id_tuple[0]} AND claim_status = 1;'
+    else:
+      return []
+    
+    cur.execute(sql2)
+    claims_data_list = list(cur.fetchall())
+    print("gggggggggggggggggggggggggggg", claims_data_list)
+    cur.close()
+    
+    return claims_data_list
+
+
+
+  #fetch all claims data
+  cur = mysql.connection.cursor()
+  if len(claims_id_tuple) > 1:
+    sql2 = f'SELECT * FROM claim WHERE claim_id IN {claims_id_tuple};'
+  elif len(claims_id_tuple) == 1:
+    sql2 = f'SELECT * FROM claim WHERE claim_id = {claims_id_tuple[0]};'
+  else:
+    return []
+  
+  cur.execute(sql2)
+  claims_data_list = list(cur.fetchall())
+  print("gggggggggggggggggggggggggggg11", claims_data_list)
+  cur.close()
+  
+  return claims_data_list
+  
+  # return policies_id
+
+
+def toggle_claim_status(claim_id, claim_status):
+  #check status to see if it will be turned of or on
+  print('here ia mmuuuuuuuuuuuuuuuuuuuuuttttttttttttttttttt', type(claim_status), claim_status)
+  cur = mysql.connection.cursor()
+  if claim_status == '1':
+    print('zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz')
+    sql = f'UPDATE claim SET claim_status = %s WHERE claim_id = {claim_id};'
+    cur.execute(sql, (0, ))
+    mysql.connection.commit()
+    cur.close()
+    return 'unresolved'
+
+  print('higigigigigigigz')
+  sql = f'UPDATE claim SET claim_status = %s WHERE claim_id = {claim_id};'
+  cur.execute(sql, (1, ))
+  mysql.connection.commit()
+  cur.close()
+
+  return 'resolved'
+  
+
+def toggle_filter_status(state):
+  print("toggle_filter_status ", state)
+  if state == 'False':
+    state = True
+    print("inside if condition", state)
+    return state
+  state = False
+  print("outside if condition", state)
+  return state

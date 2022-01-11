@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %} policy page {% endblock %}
+{% block content %}
+  <form method="POST" class="col-6 m-auto border pt-5 pb-5 mt-5 mb-5 ps-5 pe-5 shadow-sm rounded-1 form-style" >
+    {{ form.hidden_tag() }}
+    <h1 class="fw-bold text-center">policy Details</h1>
+    {% if form_state == 'add_policy' %}
+    <span>Beneficiary SSN for:</span>
+    <div class="mb-3">
+      {{ form.policy_beneficiary_ssn(class="form-control") }}
+    </div>
+    <span>{{ form.policy_plan.label }}</span>
+    <div class="mb-3">
+      {{ form.policy_plan(class="form-control") }}
+    </div>
+      <div class="d-flex justify-content-start">
+        {{ form.policy_submit(class="btn btn-primary", value='Add') }}
+      </div>
+    {% else %}
+    <ul class="list-group">  
+      <li class="list-group-item"><strong>Policy ID:</strong> {{ info['policy_id'] }} </li>
+      <li class="list-group-item"><strong>Beneficiary SSN:</strong> {{ info['policy_beneficiary_ssn'] }} </li>
+      <li class="list-group-item"><strong>Plan Type:</strong> {{ plan['plan_type'] }} </li>
+      <div class="dropdown mb-3">
+        <a class="btn btn-success dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+          associated hospitals
+        </a>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+          {% for hospital in hospitals %}
+           <li><a class="dropdown-item" href="#">{{ hospital }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </ul>
+    
+    
+    {% endif %}
+  </form>  
+{% endblock %}

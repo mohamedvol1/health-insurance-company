@@ -39,7 +39,7 @@ def signUp():
   print("in the sign up function")
   form = SignUpForm()                                  #fetching the data from thr form 
   if form.validate_on_submit():                        #validate the input and create a new user on submit
-    print(createUser(form.username.data, form.email.data, form.password.data))
+    flash(" You have signed up successfully, Welcom!", category=createUser(form.username.data, form.email.data, form.password.data))
     create_user_session(form.email.data)
     return redirect('/profile')
      
@@ -117,6 +117,68 @@ def dependent_form(dependent_id):
   return render_template("auth/dependentForm.html", form=form, form_state=dependent_id)
 
 
+#policies for customer and his dependents
+@auth.route('/policies/')
+def policies_page():
+  print("ddddddddddddddddddddddddddddddddddddddd", access_customer_policies_id( session['customer_id'] ))
+  return render_template("auth/policies.html", policies=access_customer_policies_id(session['customer_id']) )
+
+@auth.route('/policies/<policy_id>', methods=['GET', 'POST'], defaults={'info': None,  'plan': None, 'associated_hospitals': None})
+def policy_form(policy_id, info, associated_hospitals, plan):
+  form = PolicyForm()
+  # print('sssssssssssssssssssssssssss', fetch_availble_ssn(session['customer_id'], session['customer_ssn'], session['customer_name']))
+  form.policy_beneficiary_ssn.choices = fetch_availble_ssn(session['customer_id'], session['customer_ssn'], session['customer_name'])
+  form.policy_plan.choices = formatted_fetch_all_plans()
+  # policy_beneficiary_ssn = fetch_availble_ssn(session['customer_id'])
+  # check on submitting and create new dependent
+  if form.validate_on_submit() and policy_id == 'add_policy':                    
+    flash(' You have added a policy_id ', category=create_policy(form, session['customer_id'], policy_id))
+    return redirect(url_for('auth.policies_page'))
+
+  #showing dependent data and and check on submit to update
+  if policy_id != 'add_policy':
+     # check on submitting and update the data 
+    # if form.validate_on_submit() and policy_id != 'add_policy': 
+    #   flash(" You have updated the information of your dependent", category=update_dependent(dependent_id, form))
+    #   return redirect(url_for('auth.dependent_form', dependent_id=dependent_id))
+    #fetch dependent
+    info = fetch_data_by(policy_id, 'policy', 'policy_id')
+    plan = fetch_associated_plan(policy_id)
+    associated_hospitals = fetch_plan_hopitals(plan['plan_id'])
+    #fil the form with dependent info
+    form.policy_beneficiary_ssn.data = info['policy_beneficiary_ssn']
+    # form.profile_email.data = info['dependent_email']
+    # form.profile_dob.data = info['dependent_dob']
+    # form.profile_ssn.data = info['dependent_ssn']
+    #fill the form with new values
+  return render_template("auth/policyForm.html", form=form, form_state=policy_id, info=info, plan=plan, hospitals=associated_hospitals)
+
+@auth.route('/claims/')
+def claims_page():
+  policies = access_customer_policies_id(session['customer_id'])
+  print('qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqtttttt',policies )
+  policyId_ssn_name_tuple_list = []
+  for policy_id, ssn, date in policies:
+    policyId_ssn_name_tuple_list.append((policy_id, ssn, fetch_name_for_ssn(ssn)))
+
+  return render_template("auth/claims.html", policies=policyId_ssn_name_tuple_list )
+
+
+
+@auth.route('/claims/<policy_id>/<policy_beneficiry>', methods=['GET', 'POST'])
+def claim_form(policy_id, policy_beneficiry):
+  form = ClaimForm()
+  form.claim_beneficiary_name.data = policy_beneficiry
+  form.claim_hospital_name.choices = fetch_claim_hopitals(policy_id)
+  
+  if form.validate_on_submit():
+    flash('You have issued a claim', category=create_claim(form, policy_id))
+
+    return redirect(url_for('auth.claims_page'))
+  return render_template("auth/claimForm.html", form=form)
+
+
+
 @auth.route('/admin', methods=['GET', 'POST'])
 def admin():
   form = LoginForm('admin')
@@ -163,7 +225,42 @@ def admin_profile():
       flash(f'bad entry: {err_msg[0]}', category='danger')
     return redirect(url_for('auth.profile_page'))
 
-  return render_template("auth/adminProfile.html", form=form)
+  return render_template("auth/adminProfile.html", form=form, admin_id=session['admin_id'])
+
+@auth.route('/admin-profile/<admin_id>')
+def dashboard_page(admin_id):
+  if not session.get('admin_id'):
+    print("wrooooooooooooooooong access")
+    return "<h1>This page is not availble for you</h1>"
+  customers = fetch_all_customers()
+  print('heeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', customers)
+  return render_template("auth/dashboard.html", customers=customers, admin_id=admin_id)
+
+#customer_claims_page
+@auth.route('/customer_claims_page/<admin_id>/<customer_id>', defaults={'filter_resolved': False})
+@auth.route('/customer_claims_page/<admin_id>/<customer_id>/<filter_resolved>')
+def customer_claims_page(admin_id, customer_id, filter_resolved):
+  #select customer_id, customer_name, customer_email, policy_policy_id from customer, customer_policy where customer_id = customer_customer_id;
+  claims = fetch_customers_claims(customer_id, filter_resolved)
+  
+  return render_template("auth/costumerClaims.html", claims=claims, admin_id=admin_id, customer_id=customer_id, filter_resolved=filter_resolved)
+
+
+#toggle_claim_state
+@auth.route('/toggleState/<claim_id>/<claim_status>/<admin_id>/<customer_id>')
+def toggle_claim_state(claim_id, claim_status, admin_id, customer_id):
+  print('heeeeeeeeeee9999999999999777777eeeeee8888888', admin_id, customer_id, claim_status)
+  toggle_claim_status(claim_id, claim_status)
+  return redirect(url_for('auth.customer_claims_page', admin_id=admin_id, customer_id=customer_id))
+
+#toggle_filter
+@auth.route('/toggleFilter/<admin_id>/<customer_id>/<filter_status>')
+def toggle_filter(admin_id, customer_id, filter_status):
+  print('titititititititititititppppopopopoppp', filter_status)
+  new_status = toggle_filter_status(filter_status)
+  print('titititititititititititppppopopopoppp', new_status)
+  return redirect(url_for('auth.customer_claims_page',admin_id=admin_id, customer_id=customer_id, filter_resolved=new_status ))
+
 
 
 @auth.route('/plans/')

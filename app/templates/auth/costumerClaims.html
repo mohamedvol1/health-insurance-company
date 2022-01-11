@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %} claims list {% endblock %}
+
+{% block content %}
+  <section class="bg-light py-5 border-bottom m-auto mt-5 w-75">
+    <h1 class="fw-bold text-center">Claims Issued By Customer</h1>
+    <table class="table table-striped">
+      <a class="btn btn-primary" href="{{ url_for('auth.toggle_filter',admin_id=admin_id, customer_id=customer_id, filter_status=filter_resolved) }}" role="button">
+        {% if filter_resolved != False %}
+          <span> show all </span>
+        {% else %}
+          <span> show resolved </span>
+        {% endif %}
+      </a>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Name</th>
+          <th scope="col">Hospital</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for claim in claims %}
+          <tr>
+            <th scope="row"><a href="#">{{ claim[0] }}</a></th>
+            <td>{{ claim[5] }}</td>
+            <td>{{ claim[6] }}</td>
+            <td>
+              {% if claim[4] == 0 %}
+                <a href="{{ url_for('auth.toggle_claim_state', claim_id=claim[0], claim_status=claim[4], admin_id=admin_id, customer_id=customer_id) }}">unresolved</a>
+              {% else %}
+                <a href="{{ url_for('auth.toggle_claim_state', claim_id=claim[0], claim_status=claim[4], admin_id=admin_id, customer_id=customer_id) }}">resolved</a> 
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section> 
+{% endblock %}

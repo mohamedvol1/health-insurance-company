@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %} cusotmers list {% endblock %}
+
+{% block content %}
+  <section class="bg-light py-5 border-bottom m-auto mt-5 w-75">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Name</th>
+          <th scope="col">Ssn</th>
+          <th scope="col">Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for customer in customers %}
+          <tr>
+            <th scope="row"><a href="{{ url_for('auth.customer_claims_page', admin_id=admin_id, customer_id=customer[0]) }}">{{ customer[0] }}</a></th>
+            <td>{{ customer[1] }}</td>
+            <td>{{ customer[5] }}</td>
+            <td>{{ customer[2] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section> 
+{% endblock %}
